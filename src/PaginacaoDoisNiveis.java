@@ -39,13 +39,8 @@ public class PaginacaoDoisNiveis {
     }
 
     public void run(String outputFile) throws IOException {
-        setupTables();
         readAddressesFromFile();
         saveOutputToFile(outputFile);
-    }
-
-    private void setupTables() {
-        // Pode ser expandido se necessário para simular carregamento inicial
     }
 
     private void readAddressesFromFile() throws IOException {
