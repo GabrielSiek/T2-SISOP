@@ -3,24 +3,24 @@ import java.util.*;
 
 public class SGMP {
 
-    private int V_MEM_SIZE;
-    private int F_MEM_SIZE;
-    private int PAGE_SIZE;
-    private long SEG_TEXT, SEG_DATA, SEG_STACK, SEG_BSS;
-    private List<Long> V_ADDRS = new ArrayList<>();
-    private int[] PAGE_TABLE;
-    private long[] F_MEM;
+    private int VIRTUAL_MEMORY_SIZE; //memoria virtual
+    private int RAM_MEMORY_SIZE; //memoria fisica
+    private int PAGE_AND_FRAME_SIZE; //pagina
+    private long SEG_TEXT, SEG_DATA, SEG_STACK, SEG_BSS; //segmentos
+    private List<Long> V_ADDRS = new ArrayList<>(); //enderços virtuais
+    private int[] PAGE_TABLE; //paginas
+    private long[] FRAMES; //frames
 
-    public SGMP(int vMem, int fMem, int pageSize, int text, int data, int stack, String inputFile) throws IOException {
-        this.V_MEM_SIZE = vMem;
-        this.F_MEM_SIZE = fMem;
-        this.PAGE_SIZE = pageSize;
+    public SGMP(int vMem, int fMem, int pageAndFrameSize, int text, int data, int stack, String inputFile) throws IOException {
+        this.VIRTUAL_MEMORY_SIZE = (int) Math.pow(2, vMem);
+        this.RAM_MEMORY_SIZE = (int) Math.pow(2, fMem);
+        this.PAGE_AND_FRAME_SIZE = pageAndFrameSize;
 
-        if (vMem <= fMem) throw new IllegalArgumentException("Memória virtual deve ser maior ou igual que física.");
+        if (vMem < fMem) throw new IllegalArgumentException("Memória virtual deve ser maior ou igual que física.");
 
         this.SEG_TEXT = (long) Math.pow(2, text);
-        this.SEG_DATA = (long) Math.pow(2, data);
-        this.SEG_STACK = (long) Math.pow(2, stack);
+        this.SEG_DATA = data;
+        this.SEG_STACK = stack;
         this.SEG_BSS = SEG_TEXT + SEG_DATA + SEG_STACK;
 
         readAddressesFromFile(inputFile);
@@ -40,7 +40,7 @@ public class SGMP {
     }
 
     private void readAddressesFromFile(String path) throws IOException {
-        long max = (long) Math.pow(2, V_MEM_SIZE);
+        long max = (long) Math.pow(2, VIRTUAL_MEMORY_SIZE);
         try (BufferedReader input = new BufferedReader(new FileReader(path))) {
             String line;
             while ((line = input.readLine()) != null) {
@@ -53,22 +53,31 @@ public class SGMP {
     }
 
     private void setupTables() {
-        int pagesAndFrames = (int) Math.pow(2, V_MEM_SIZE - PAGE_SIZE);
-        PAGE_TABLE = new int[pagesAndFrames];
-        F_MEM = new long[pagesAndFrames];
+        int pagesQuantity = VIRTUAL_MEMORY_SIZE / PAGE_AND_FRAME_SIZE;
+        int framesQuantity = RAM_MEMORY_SIZE / PAGE_AND_FRAME_SIZE;
+        PAGE_TABLE = new int[pagesQuantity];
+        FRAMES = new long[framesQuantity];
         Arrays.fill(PAGE_TABLE, -1);
-        Arrays.fill(F_MEM, -1);
+        Arrays.fill(FRAMES, -1);
     }
 
     private long mapVirtualToPhysicalAddress(long virtualAddress) {
-        long pageSize = (long) Math.pow(2, PAGE_SIZE);
-        int pageIndex = (int) (virtualAddress / pageSize);
-        long offset = virtualAddress % pageSize;
+        //calcula index e offset
+        int pageIndex = (int) (virtualAddress / PAGE_AND_FRAME_SIZE);
+        long offset = virtualAddress % PAGE_AND_FRAME_SIZE;
 
+        //pega o frame index a partir do index
         int frameIndex = PAGE_TABLE[pageIndex];
+
+        //frameIndex = -1 -> pagina vazia
         if (frameIndex == -1) {
-            for (int i = 0; i < F_MEM.length; i++) {
-                if (F_MEM[i] == -1) {
+
+            //percorre todos os frames até encontrar um livre
+            for (int i = 0; i < FRAMES.length; i++) {
+
+                //se estiver livre aponta a pagina para o frame i
+                //tbm salva o valor do frameindex pra i
+                if (FRAMES[i] == -1) {
                     PAGE_TABLE[pageIndex] = i;
                     frameIndex = i;
                     break;
@@ -78,8 +87,8 @@ public class SGMP {
                 throw new IllegalStateException("Memória física cheia.");
         }
 
-        F_MEM[frameIndex] = virtualAddress;
-        return frameIndex * pageSize + offset;
+        FRAMES[frameIndex] = virtualAddress;
+        return (long) frameIndex * PAGE_AND_FRAME_SIZE + offset;
     }
 
     private String getSegment(long address) {
@@ -99,7 +108,7 @@ public class SGMP {
             out.println("\nTabela de Páginas:");
             out.println(Arrays.toString(PAGE_TABLE));
             out.println("\nMemória Física:");
-            out.println(Arrays.toString(F_MEM));
+            out.println(Arrays.toString(FRAMES));
         }
     }
 }
