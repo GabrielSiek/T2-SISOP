@@ -1,0 +1,18 @@
+EndereçoVirtual	Segmento	EndereçoFísico
+20			.data			4
+1			.text			17
+27			.data			11
+50			.stack			34
+43			.data			59
+21			.data			5
+17			.data			1
+60			.stack			44
+
+Tabela de Páginas Invertida:
+Frame 0 -> Página Virtual 1 (.data)
+Frame 1 -> Página Virtual 0 (.text)
+Frame 2 -> Página Virtual 3 (.stack)
+Frame 3 -> Página Virtual 2 (.data)
+
+Memória Física:
+[20, 1, 50, 43]

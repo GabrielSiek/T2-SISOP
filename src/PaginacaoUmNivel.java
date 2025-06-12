@@ -1,7 +1,7 @@
 import java.io.*;
 import java.util.*;
 
-public class SGMP {
+public class PaginacaoUmNivel {
 
     private int VIRTUAL_MEMORY_SIZE; //memoria virtual
     private int RAM_MEMORY_SIZE; //memoria fisica
@@ -11,10 +11,7 @@ public class SGMP {
     private int[] PAGE_TABLE; //paginas
     private long[] FRAMES; //frames
 
-    private List<Long> baseAddress;
-    private List<Long> offsets;
-
-    public SGMP(int vMem, int fMem, int pageAndFrameSize, int text, int data, int stack, String inputFile) throws IOException {
+    public PaginacaoUmNivel(int vMem, int fMem, int pageAndFrameSize, int text, int data, int stack, String inputFile) throws IOException {
         //define o tamanho da mas memorias e pagina/frame
         this.VIRTUAL_MEMORY_SIZE = (int) Math.pow(2, vMem);
         this.RAM_MEMORY_SIZE = (int) Math.pow(2, fMem);
@@ -27,7 +24,7 @@ public class SGMP {
         this.SEG_TEXT = (long) Math.pow(2, text);
         this.SEG_DATA = data;
         this.SEG_STACK = stack;
-        this.SEG_BSS = SEG_TEXT + SEG_DATA + SEG_STACK;
+        this.SEG_BSS = VIRTUAL_MEMORY_SIZE - (SEG_TEXT + SEG_DATA + SEG_STACK);
 
         //le arquivo e inicia as tabelas
         readAddressesFromFile(inputFile);
@@ -111,8 +108,8 @@ public class SGMP {
         if (address < SEG_TEXT) return ".text";
         else if (address < SEG_TEXT + SEG_DATA) return ".data";
         else if (address < SEG_TEXT + SEG_DATA + SEG_STACK) return ".stack";
-        else if (address < SEG_TEXT + SEG_DATA + SEG_STACK + SEG_BSS) return ".bss";
-        else return "unknown";
+
+        return ".bss";
     }
 
     private void saveOutputToFile(String filename, List<Long> vAddrs, List<String> segments, List<Long> pAddrs) throws IOException {
