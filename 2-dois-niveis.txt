@@ -1,0 +1,13 @@
+TEXTO - VA: 50 -> PA: 2
+TEXTO - VA: 30 -> PA: 30
+TEXTO - VA: 1 -> PA: 33
+TEXTO - VA: 2 -> PA: 34
+TEXTO - VA: 3 -> PA: 35
+
+TABELA DE PÁGINAS (DOIS NÍVEIS):
+Página [0][0] → Moldura 2
+Página [0][1] → Moldura 1
+Página [0][3] → Moldura 0
+
+MEMÓRIA FÍSICA:
+[50, 30, 1, -1]
