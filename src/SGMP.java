@@ -11,7 +11,7 @@ public class SGMP {
 
     private int[] PAGE_TABLE; // para 1 nível
     private Map<Integer, int[]> PAGE_TABLE_2LEVEL; // para 2 níveis
-    private Map<Long, Integer> INVERTED_PAGE_TABLE; // para invertida
+    private long[] INVERTED_PAGE_TABLE; // frameIndex → pageNumber (INVERTED correta!)
     private long[] FRAMES; // frames
 
     private PageTableType pageTableType;
@@ -72,7 +72,8 @@ public class SGMP {
                 PAGE_TABLE_2LEVEL = new HashMap<>();
                 break;
             case INVERTED:
-                INVERTED_PAGE_TABLE = new HashMap<>();
+                INVERTED_PAGE_TABLE = new long[framesQuantity];
+                Arrays.fill(INVERTED_PAGE_TABLE, -1); // -1 = moldura livre
                 break;
         }
 
@@ -118,7 +119,7 @@ public class SGMP {
 
     private long mapTwoLevel(long virtualAddress) {
         int pageNumber = (int) (virtualAddress / PAGE_AND_FRAME_SIZE);
-        int outerIndex = pageNumber / 256; // fator de divisão exemplo (pode ser ajustado)
+        int outerIndex = pageNumber / 256;
         int innerIndex = pageNumber % 256;
         long offset = virtualAddress % PAGE_AND_FRAME_SIZE;
 
@@ -128,7 +129,7 @@ public class SGMP {
         if (innerTable[innerIndex] == 0) {
             for (int i = 0; i < FRAMES.length; i++) {
                 if (FRAMES[i] == -1) {
-                    innerTable[innerIndex] = i + 1; // +1 para não confundir com 0
+                    innerTable[innerIndex] = i + 1;
                     FRAMES[i] = virtualAddress;
                     return (long) i * PAGE_AND_FRAME_SIZE + offset;
                 }
@@ -145,19 +146,31 @@ public class SGMP {
         long pageNumber = virtualAddress / PAGE_AND_FRAME_SIZE;
         long offset = virtualAddress % PAGE_AND_FRAME_SIZE;
 
-        if (!INVERTED_PAGE_TABLE.containsKey(pageNumber)) {
-            for (int i = 0; i < FRAMES.length; i++) {
-                if (FRAMES[i] == -1) {
-                    INVERTED_PAGE_TABLE.put(pageNumber, i);
-                    FRAMES[i] = virtualAddress;
-                    return (long) i * PAGE_AND_FRAME_SIZE + offset;
-                }
+        // Verifica se a página já está em alguma moldura
+        int frameIndex = -1;
+        for (int i = 0; i < INVERTED_PAGE_TABLE.length; i++) {
+            if (INVERTED_PAGE_TABLE[i] == pageNumber) {
+                frameIndex = i;
+                break;
             }
-            System.out.println("Memória física cheia. Encerrando o simulador.");
-            System.exit(0);
         }
 
-        int frameIndex = INVERTED_PAGE_TABLE.get(pageNumber);
+        // Se não está, aloca em moldura livre
+        if (frameIndex == -1) {
+            for (int i = 0; i < INVERTED_PAGE_TABLE.length; i++) {
+                if (INVERTED_PAGE_TABLE[i] == -1) {
+                    INVERTED_PAGE_TABLE[i] = pageNumber;
+                    frameIndex = i;
+                    break;
+                }
+            }
+            if (frameIndex == -1) {
+                System.out.println("Memória física cheia. Encerrando o simulador.");
+                System.exit(0);
+            }
+        }
+
+        FRAMES[frameIndex] = virtualAddress;
         return (long) frameIndex * PAGE_AND_FRAME_SIZE + offset;
     }
 
@@ -191,8 +204,12 @@ public class SGMP {
                     }
                 }
             } else if (pageTableType == PageTableType.INVERTED) {
-                for (Map.Entry<Long, Integer> entry : INVERTED_PAGE_TABLE.entrySet()) {
-                    out.printf("Página %d → Moldura %d\n", entry.getKey(), entry.getValue());
+                for (int i = 0; i < INVERTED_PAGE_TABLE.length; i++) {
+                    if (INVERTED_PAGE_TABLE[i] != -1) {
+                        out.printf("Moldura %d → Página %d\n", i, INVERTED_PAGE_TABLE[i]);
+                    } else {
+                        out.printf("Moldura %d → (livre)\n", i);
+                    }
                 }
             }
 
